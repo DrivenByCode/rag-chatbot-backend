@@ -1,0 +1,55 @@
+plugins {
+    id 'org.springframework.boot' version '3.2.2'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+    }
+}
+
+// gRPC 버전 고정을 위한 변수 선언
+ext {
+    set('grpcVersion', '1.57.2')
+}
+
+dependencies {
+    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-M6")
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter'
+
+    // swagger 설정
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+    implementation 'org.springframework.ai:spring-ai-core'
+    implementation 'org.springframework.ai:spring-ai-ollama'
+    implementation("org.springframework.ai:spring-ai-qdrant-store-spring-boot-starter")
+    implementation 'io.qdrant:client:1.8.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // gRPC 버전 명시적 지정
+    implementation "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // 테스트 의존성
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}

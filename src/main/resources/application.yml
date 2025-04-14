@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: rag-chatbot-backend
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 60000
+
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: gemma3:4b
+      embedding:
+        model: bge-m3
+        dimensions: 1024  # 실제 임베딩 모델의 차원을 확인 후 기입
+    vectorstore:
+      qdrant:
+        host: localhost  # Qdrant 서버 주소
+        port: 6334
+        use-ssl: false   # 로컬: false, 프로덕션: true
+        collection-name: vector-store # qdrant에 입력될 collectionname 지정
+
+  jackson:
+    serialization:
+      indent-output: true
+
+chatbot:
+  role: 쇼핑몰 고객 센터 상담봇   # 챗봇 역할 설정
+  instruction: 300자 이내로 짧고 빠르게 대답. 이름은 쇼핑몰 챗봇.  # 응답 지시사항
+  score-threshold: 0.6         # 유사도 점수 임계값 (권장: 0.6 ~ 0.65)
+  just-llm: false              # LLM 순수 기능만 사용할 경우 true (현재 사용하지 않음)
+  rag-only: false              # FAQ 질문 외 상호작용 불가 옵션, 비용 절감을 위해 사용 가능
+
+  summary:
+    recent-message-count: 5    # 대화 요약에 사용할 최근 메시지 수
+
+logging:
+  level:
+    root: INFO
+    com.example.chat: DEBUG
