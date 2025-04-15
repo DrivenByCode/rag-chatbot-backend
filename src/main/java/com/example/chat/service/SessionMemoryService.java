@@ -4,9 +4,12 @@ import com.example.chat.dto.ChatMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -24,30 +27,36 @@ public class SessionMemoryService {
         redisTemplate.expire(key, ttl);
     }
 
+    @Cacheable(value = "messages", key = "#sessionId + ':recent:' + #count", unless = "#result.isEmpty()")
     public List<ChatMessage> getRecentMessages(String sessionId, int count) {
         String key = getKey(sessionId);
-        List<Object> raw = redisTemplate.opsForList().range(key, -count, -1);
+        long size = Optional.ofNullable(redisTemplate.opsForList().size(key)).orElse(0L);
+
+        // 요청한 개수가 전체 메시지 수보다 크면 전체 메시지를 가져옴
+        int effectiveCount = (int) Math.min(count, size);
+        if (effectiveCount <= 0) {
+            return List.of();
+        }
+
+        List<Object> raw = redisTemplate.opsForList().range(key, -effectiveCount, -1);
         List<ChatMessage> result = new ArrayList<>();
         if (raw != null) {
-            for (Object o : raw) {
-                ChatMessage msg = objectMapper.convertValue(o, ChatMessage.class);
-                result.add(msg);
-            }
+            raw.forEach(o -> result.add(objectMapper.convertValue(o, ChatMessage.class)));
         }
         return result;
     }
 
+    @Cacheable(value = "messages", key = "#sessionId + ':all'", unless = "#result.isEmpty()")
     public List<ChatMessage> getAllMessages(String sessionId) {
         String key = getKey(sessionId);
         List<Object> raw = redisTemplate.opsForList().range(key, 0, -1);
-        List<ChatMessage> result = new ArrayList<>();
-        if (raw != null) {
-            for (Object o : raw) {
-                ChatMessage msg = objectMapper.convertValue(o, ChatMessage.class);
-                result.add(msg);
-            }
+        if (raw == null || raw.isEmpty()) {
+            return List.of();
         }
-        return result;
+
+        return raw.stream()
+                .map(o -> objectMapper.convertValue(o, ChatMessage.class))
+                .toList();
     }
 
     public int countMessages(String sessionId) {
@@ -74,5 +83,17 @@ public class SessionMemoryService {
 
     private String getSummaryKey(String sessionId) {
         return "session:" + sessionId + ":summary";
+    }
+
+    /**
+     * 세션을 완전히 삭제합니다.
+     */
+@CacheEvict(value = {"messages", "summary"}, allEntries = true)
+    public void clearSession(String sessionId) {
+        String messagesKey = getKey(sessionId);
+        String summaryKey = getSummaryKey(sessionId);
+
+        // 여러 키를 한 번에 삭제
+        redisTemplate.delete(Arrays.asList(messagesKey, summaryKey));
     }
 }

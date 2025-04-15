@@ -1,10 +1,20 @@
 package com.example.chat.service;
 
 import com.example.chat.dto.FaqItem;
-import com.example.chat.util.store.QdrantAdminUtil;
 import com.example.chat.util.normalization.TextPreprocessorUtil;
+import com.example.chat.util.store.QdrantAdminUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -13,24 +23,18 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
-import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FaqLoaderService {
 
-    private final VectorStore vectorStore;
-    private final ObjectMapper objectMapper;
-    private final QdrantAdminUtil QdrantAdminUtil;
-
     // FAQ 관련 상수
     private static final String FAQ_TYPE = "FAQ";
     private static final String FAQ_FILTER_EXPRESSION = "type == '" + FAQ_TYPE + "'";
     private static final String FAQ_FILE_PATH = "data/faqs.json";
+    private final VectorStore vectorStore;
+    private final ObjectMapper objectMapper;
+    private final QdrantAdminUtil QdrantAdminUtil;
 
     /**
      * FAQ 데이터를 삭제(이미 저장된 FAQ 문서를 삭제)하고 새로 로드하여 인덱싱합니다.
@@ -128,7 +132,8 @@ public class FaqLoaderService {
     private List<FaqItem> loadFaqsFromJson() throws IOException {
         try (InputStream inputStream = new ClassPathResource(FAQ_FILE_PATH).getInputStream()) {
             // JSON 파일 구조에 따라 역직렬화 방법을 조정
-            return objectMapper.readValue(inputStream, new TypeReference<>() {});
+            return objectMapper.readValue(inputStream, new TypeReference<>() {
+            });
         } catch (Exception e) {
             log.error("FAQ JSON 파일 로드 중 오류 발생: {}", e.getMessage(), e);
             throw e;
@@ -177,9 +182,7 @@ public class FaqLoaderService {
 
 
     /**
-     * FAQ 문서의 총 개수를 계산하고 반환한다.
-     * QdrantAdminUtil의 countPoints 메서드를 호출하여 FAQ 문서 수를 가져오며,
-     * 오류가 발생할 경우 경고 로그를 출력하고 0을 반환한다.
+     * FAQ 문서의 총 개수를 계산하고 반환한다. QdrantAdminUtil의 countPoints 메서드를 호출하여 FAQ 문서 수를 가져오며, 오류가 발생할 경우 경고 로그를 출력하고 0을 반환한다.
      *
      * @return FAQ 문서 총 개수를 나타내는 long 값. 오류 발생 시 0을 반환한다.
      */
@@ -214,10 +217,24 @@ public class FaqLoaderService {
                 String category = metadata.getOrDefault("category", "기타").toString();
 
                 // answers 배열 가져오기
-                List<String> answers;
+                List<String> answers = new ArrayList<>();
                 Object answersObj = metadata.get("answers");
-                if (answersObj instanceof List) {
-                    answers = (List<String>) answersObj;
+                if (answersObj instanceof String) {
+                    // JSON 문자열로 저장된 경우 역직렬화
+                    try {
+                        answers = objectMapper.readValue((String) answersObj, new TypeReference<List<String>>() {
+                        });
+                    } catch (Exception e) {
+                        log.warn("답변 데이터 역직렬화 실패: {}", e.getMessage());
+                    }
+                } else if (answersObj instanceof List<?>) {
+                    // 리스트인 경우 안전하게 형변환
+                    List<?> rawList = (List<?>) answersObj;
+                    for (Object item : rawList) {
+                        if (item instanceof String) {
+                            answers.add((String) item);
+                        }
+                    }
                 } else {
                     // 이전 버전과의 호환성을 위해 단일 answer도 처리
                     String answer = metadata.getOrDefault("answer", "").toString();
@@ -228,10 +245,13 @@ public class FaqLoaderService {
                 String firstAnswer = answers.isEmpty() ? "" : answers.get(0);
                 String key = firstAnswer + "::" + category;
 
+                // 이 시점에서 answers를 final 변수로 복사
+                final List<String> finalAnswers = new ArrayList<>(answers);
+
                 FaqItem item = itemsByAnswerKey.computeIfAbsent(key, k -> {
                     FaqItem newItem = new FaqItem();
                     newItem.setQuestions(new ArrayList<>());
-                    newItem.setAnswers(answers);
+                    newItem.setAnswers(finalAnswers); // 람다에서 final 변수 사용
                     newItem.setCategory(category);
                     return newItem;
                 });

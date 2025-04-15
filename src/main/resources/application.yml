@@ -1,5 +1,9 @@
 server:
   port: 8080
+  compression:
+    enabled: true # HTTP 응답 압축 활성화
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css # 압축 적용 확장자 지정
+    min-response-size: 1024 # 압축 적용 최소 크기 지정
 
 spring:
   application:
@@ -10,37 +14,62 @@ spring:
       host: localhost
       port: 6379
       timeout: 60000
+      connect-timeout: 10000
+
+  cache:
+    type: redis # 캐시 유형 지정
+    redis:
+      time-to-live: 86400000 # 24시간
+      cache-null-values: false # 캐시에 null 값 저장 여부
 
   ai:
     ollama:
       base-url: http://localhost:11434
       chat:
         model: gemma3:4b
+        timeout: 60s
       embedding:
         model: bge-m3
-        dimensions: 1024  # 실제 임베딩 모델의 차원을 확인 후 기입
+        dimensions: 1024 # 실제 임베딩 모델의 차원을 확인 후 기입
     vectorstore:
       qdrant:
-        host: localhost  # Qdrant 서버 주소
+        host: localhost # Qdrant 서버 주소
         port: 6334
-        use-ssl: false   # 로컬: false, 프로덕션: true
+        use-ssl: false # 로컬: false, 프로덕션: true
         collection-name: vector-store # qdrant에 입력될 collectionname 지정
+        enabled: true # qdrant 사용 여부
 
   jackson:
     serialization:
-      indent-output: true
+      indent-output: true # 응답 데이터 들여쓰기 활성화
+      write-dates-as-timestamps: false # 날짜 형식 유지
+    deserialization:
+      fail-on-unknown-properties: false # 알 수 없는 속성 예외 비활성화
 
 chatbot:
-  role: 쇼핑몰 고객 센터 상담봇   # 챗봇 역할 설정
-  instruction: 300자 이내로 짧고 빠르게 대답. 이름은 쇼핑몰 챗봇.  # 응답 지시사항
-  score-threshold: 0.6         # 유사도 점수 임계값 (권장: 0.6 ~ 0.65)
-  just-llm: false              # LLM 순수 기능만 사용할 경우 true (현재 사용하지 않음)
-  rag-only: false              # FAQ 질문 외 상호작용 불가 옵션, 비용 절감을 위해 사용 가능
+  role: 쇼핑몰 고객 센터 상담봇 # 챗봇 역할 설정
+  instruction: 300자 이내로 짧고 빠르게 대답. 이름은 쇼핑몰 챗봇. # 응답 지시사항
+  score-threshold: 0.6 # 유사도 점수 임계값 (권장: 0.6 ~ 0.65)
+  just-llm: false # LLM 순수 기능만 사용할 경우 true
+  rag-only: false # FAQ 질문 외 상호작용 불가 옵션, 비용 절감을 위해 사용 가능
 
   summary:
-    recent-message-count: 5    # 대화 요약에 사용할 최근 메시지 수
+    recent-message-count: 5 # 대화 요약에 사용할 최근 메시지 수
+    max-token-count: 2000 # 요약 최대 토큰 수
 
 logging:
   level:
-    root: INFO
-    com.example.chat: DEBUG
+    root: INFO # 루트 로그 레벨
+    com.example.chat: DEBUG # 패키지 로그 레벨
+    org.springframework.cache: INFO # 캐시 로그 레벨
+    org.springframework.data.redis: INFO # Redis 로그 레벨
+    org.springframework.security: INFO # 보안 로그 레벨
+  pattern: # 로그 패턴 설정
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" # 콘솔 로그 패턴
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" # 파일 로그 패턴
+  file:
+    name: ./logs/application.log # 로그 파일 경로
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB # 로그 파일 최대 크기
+      max-history: 30 # 로그 파일 최대 보관 기간
