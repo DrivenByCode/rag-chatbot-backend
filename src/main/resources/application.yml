@@ -1,5 +1,7 @@
 server:
   port: 8080
+  servlet:
+    context-path: "/api"
   compression:
     enabled: true # HTTP 응답 압축 활성화
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css # 압축 적용 확장자 지정

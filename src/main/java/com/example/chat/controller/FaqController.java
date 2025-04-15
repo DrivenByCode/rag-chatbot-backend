@@ -5,10 +5,13 @@ import com.example.chat.util.store.QdrantAdminUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/faq")
+@RequestMapping("/faq")
 @RequiredArgsConstructor
 @Slf4j
 public class FaqController {
@@ -17,8 +20,7 @@ public class FaqController {
     private final QdrantAdminUtil qdrantAdminUtil;
 
     /**
-     * FAQ 데이터를 다시 로드합니다 (기존 FAQ 제거 후 새로 적재)
-     * 오류 처리 및 반환값 개선
+     * FAQ 데이터를 다시 로드합니다 (기존 FAQ 제거 후 새로 적재) 오류 처리 및 반환값 개선
      */
     @PostMapping("/reload")
     public ResponseEntity<String> reloadFaqs() {
@@ -59,8 +61,7 @@ public class FaqController {
     }
 
     /**
-     * FAQ 데이터를 업데이트합니다 (새 항목만 추가)
-     * 오류 처리 및 반환값 개선
+     * FAQ 데이터를 업데이트합니다 (새 항목만 추가) 오류 처리 및 반환값 개선
      */
     @PostMapping("/update")
     public ResponseEntity<String> updateFaqs() {
@@ -94,8 +95,7 @@ public class FaqController {
     }
 
     /**
-     * 모든 벡터 데이터를 초기화하고 FAQ를 다시 로드합니다.
-     * 오류 처리 및 반환값 개선
+     * 모든 벡터 데이터를 초기화하고 FAQ를 다시 로드합니다. 오류 처리 및 반환값 개선
      */
     @PostMapping("/reset-and-reload")
     public ResponseEntity<String> resetAndReload() {
