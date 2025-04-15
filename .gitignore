@@ -3,3 +3,6 @@
 /build/
 /build/classes/java/main/
 /bin
+/org
+/logs
+.vscode
