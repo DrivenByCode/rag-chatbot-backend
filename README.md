@@ -25,13 +25,13 @@
 ### 1. Qdrant 설치 및 실행
 
 ```shell script
-docker run -d -p 6333:6333 -p 6334:6334 qdrant/qdrant
+docker run -d --name qdrant -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
 ### 2. Redis 설치 및 실행
 
 ```shell script
-docker run -d -p 6379:6379 redis
+docker run -d --name redis -p 6379:6379 redis
 ```
 
 ### 3. 임베딩 서버 실행
